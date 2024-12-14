@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        #quiz-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 600px;
+            margin: auto;
+        }
+        .option {
+            margin: 10px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 500px;
+            text-align: left;
+        }
+        .option:hover {
+            background-color: #e0e0e0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #timer {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .hidden {
+            display: none;
+        }
+        .selected {
+    background-color: #d4edda; 
+    color: #155724; 
+    pointer-events: none; 
+}
+
+    </style>
+</head>
+<body>
+
+    <h1>Quiz App</h1>
+    <div id="quiz-container">
+        <div id="question-container">
+            <p id="question"></p>
+            <div id="options"></div>
+        </div>
+        <p id="score">Score: 0</p>
+        <p>Time Left: <span id="timer">30</span> seconds</p>
+        <button id="next-question" class="hidden">Next Question</button>
+    </div>
+
+    <script>
+        const apiUrl = 'https://opentdb.com/api.php?amount=10&type=multiple'; 
+        let quizData = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let timer;
+        const timeLimit = 30;
+
+        async function fetchQuizData() {
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            quizData = data.results;
+            displayQuestion(quizData[currentQuestionIndex]);
+            startTimer();
+        }
+
+        function displayQuestion(question) {
+            const questionText = decodeHtml(question.question);
+            const optionsContainer = document.getElementById("options");
+            optionsContainer.innerHTML = '';
+
+            document.getElementById("question").innerText = questionText;
+
+            const allOptions = [...question.incorrect_answers, question.correct_answer];
+            shuffle(allOptions);
+
+            allOptions.forEach((option, index) => {
+                const optionButton = document.createElement("div");
+                optionButton.classList.add("option");
+                optionButton.innerText = decodeHtml(option);
+                optionButton.addEventListener("click", () => checkAnswer(option, question.correct_answer)); 
+                optionsContainer.appendChild(optionButton);
+            });
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function decodeHtml(html) {
+            const txt = document.createElement("textarea");
+            txt.innerHTML = html;
+            return txt.value;
+        }
+
+        function checkAnswer(selectedAnswer, correctAnswer) {
+    const options = document.querySelectorAll(".option");
+    options.forEach(option => {
+        option.style.pointerEvents = "none"; 
+        if (option.innerText === correctAnswer) {
+            option.classList.add("selected"); 
+        }
+    });
+
+    const selectedOption = Array.from(options).find(option => option.innerText === selectedAnswer);
+    if (selectedAnswer === correctAnswer) {
+        score++;
+        document.getElementById("score").innerText = "Score: " + score;
+    } else {
+        selectedOption.style.backgroundColor = "#f8d7da"; 
+        selectedOption.style.color = "#721c24"; 
+    }
+
+    document.getElementById("next-question").classList.remove("hidden");
+}
+
+        function startTimer() {
+            let timeLeft = timeLimit;
+            document.getElementById("timer").innerText = timeLeft;
+            if (timer) clearInterval(timer);
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById("timer").innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    document.getElementById("next-question").classList.remove("hidden");
+                }
+            }, 1000);
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                displayQuestion(quizData[currentQuestionIndex]);
+                document.getElementById("next-question").classList.add("hidden");
+                startTimer();
+            } else {
+                alert('Quiz Completed! Your score is: ' + score);
+            }
+        }
+
+        window.onload = () => {
+            fetchQuizData();
+            document.getElementById("next-question").onclick = nextQuestion;
+        };
+    </script>
+
+</body>
+</html>
